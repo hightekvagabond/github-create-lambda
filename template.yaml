@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: GitHub Repo Creator Lambda — creates repos only, no destructive operations.
+
+Globals:
+  Function:
+    Timeout: 15
+    Runtime: nodejs20.x
+
+Resources:
+  GitHubCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      CodeUri: .
+      MemorySize: 128
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          # Add your tokens here or via AWS Console after deployment.
+          # TOKEN_mypersonal: ghp_your_personal_token
+          # TOKEN_mycompany: ghp_your_company_token
+          PLACEHOLDER: "Add TOKEN_* env vars after deployment"
+      Events:
+        ListTokens:
+          Type: Api
+          Properties:
+            Path: /tokens
+            Method: get
+        CreateRepo:
+          Type: Api
+          Properties:
+            Path: /create
+            Method: post
+        CreateRepoRoot:
+          Type: Api
+          Properties:
+            Path: /
+            Method: post
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt GitHubCreateFunction.Arn

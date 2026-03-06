@@ -1,0 +1,18 @@
+{
+  "name": "github-create-lambda",
+  "version": "1.0.0",
+  "description": "AWS Lambda function to create GitHub repositories via API Gateway",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "github",
+    "repository",
+    "automation"
+  ],
+  "license": "MIT"
+}
