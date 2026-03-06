@@ -19,12 +19,26 @@ const REPO_NAME_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 /**
  * Discover all available token labels from environment variables.
- * Returns an array of label strings (e.g. ["mypersonal", "ig"]).
+ * Returns an array of objects with label and masked token hint.
  */
-function discoverTokenLabels() {
+function discoverTokens() {
   return Object.keys(process.env)
     .filter((key) => key.startsWith(TOKEN_PREFIX) && process.env[key])
-    .map((key) => key.slice(TOKEN_PREFIX.length));
+    .map((key) => {
+      const label = key.slice(TOKEN_PREFIX.length);
+      const val = process.env[key];
+      const hint = val.length > 15
+        ? `${val.slice(0, 10)}...${val.slice(-5)}`
+        : "***";
+      return { label, hint };
+    });
+}
+
+/**
+ * Get just the label strings.
+ */
+function discoverTokenLabels() {
+  return discoverTokens().map((t) => t.label);
 }
 
 /**
@@ -119,10 +133,10 @@ export async function handler(event) {
   const method = event.httpMethod || event.requestContext?.http?.method || "POST";
   const path = event.path || event.rawPath || "/";
 
-  // GET /tokens — list available token labels
+  // GET /tokens — list available token labels with hints
   if (method === "GET" && path.endsWith("/tokens")) {
-    const labels = discoverTokenLabels();
-    return jsonResponse(200, { tokens: labels });
+    const tokens = discoverTokens();
+    return jsonResponse(200, { tokens });
   }
 
   // POST /create — create a repo
