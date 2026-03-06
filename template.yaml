@@ -8,6 +8,13 @@ Globals:
     Runtime: nodejs20.x
 
 Resources:
+  GitHubCreateApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        ApiKeyRequired: true
+
   GitHubCreateFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -18,31 +25,65 @@ Resources:
         - arm64
       Environment:
         Variables:
-          # Add your tokens here or via AWS Console after deployment.
-          # TOKEN_mypersonal: ghp_your_personal_token
-          # TOKEN_mycompany: ghp_your_company_token
           PLACEHOLDER: "Add TOKEN_* env vars after deployment"
       Events:
         ListTokens:
           Type: Api
           Properties:
+            RestApiId: !Ref GitHubCreateApi
             Path: /tokens
             Method: get
         CreateRepo:
           Type: Api
           Properties:
+            RestApiId: !Ref GitHubCreateApi
             Path: /create
             Method: post
         CreateRepoRoot:
           Type: Api
           Properties:
+            RestApiId: !Ref GitHubCreateApi
             Path: /
             Method: post
+
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn:
+      - GitHubCreateApiProdStage
+    Properties:
+      Name: github-create-lambda-key
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref GitHubCreateApi
+          StageName: Prod
+
+  UsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn:
+      - GitHubCreateApiProdStage
+    Properties:
+      UsagePlanName: github-create-lambda-plan
+      ApiStages:
+        - ApiId: !Ref GitHubCreateApi
+          Stage: Prod
+      Throttle:
+        RateLimit: 10
+        BurstLimit: 20
+
+  UsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlan
 
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint URL
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${GitHubCreateApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   FunctionArn:
     Description: Lambda function ARN
     Value: !GetAtt GitHubCreateFunction.Arn
+  ApiKeyId:
+    Description: API Key ID (retrieve value from AWS Console or CLI)
+    Value: !Ref ApiKey
